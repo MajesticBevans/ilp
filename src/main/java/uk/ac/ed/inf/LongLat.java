@@ -59,10 +59,22 @@ public class LongLat
         return distanceTo(secondPoint) < CLOSE_DISTANCE;
     }
 
+    /**
+     * Calculates the next position of this point, were it to move, according to the spec, along the angle specified in
+     * the parameter.
+     * @param angle the specified angle
+     * @return a LongLat object with coordinates of the next position
+     */
     public LongLat nextPosition(int angle)
     {
+        if (angle % 10 != 0 || angle < 0 || angle > 350)
+        {
+            throw new IllegalArgumentException("Angle must be a multiple of 10 and between 0 and 350, inclusive.");
+        }
+
         double nextLongitude;
         double nextLatitude;
+
         if (angle < 90)
         {
             nextLongitude = this.longitude + Math.cos(Math.toRadians(angle)) * CLOSE_DISTANCE;
@@ -73,6 +85,32 @@ public class LongLat
             nextLongitude = this.longitude;
             nextLatitude = this.latitude + CLOSE_DISTANCE;
         }
-        return null;
+        else if (angle < 180)
+        {
+            nextLongitude = this.longitude - Math.sin(Math.toRadians(angle - 90)) * CLOSE_DISTANCE;
+            nextLatitude = this.latitude + Math.cos(Math.toRadians(angle - 90)) * CLOSE_DISTANCE;
+        }
+        else if (angle == 180)
+        {
+            nextLongitude = this.longitude - CLOSE_DISTANCE;
+            nextLatitude = this.latitude;
+        }
+        else if (angle < 270)
+        {
+            nextLongitude = this.longitude - Math.cos(Math.toRadians(angle - 180)) * CLOSE_DISTANCE;
+            nextLatitude = this.latitude = Math.sin(Math.toRadians(angle - 180)) * CLOSE_DISTANCE;
+        }
+        else if (angle == 270)
+        {
+            nextLongitude = this.longitude;
+            nextLatitude = this.latitude - CLOSE_DISTANCE;
+        }
+        else
+        {
+            nextLongitude = this.longitude + Math.sin(Math.toRadians(angle - 270)) * CLOSE_DISTANCE;
+            nextLatitude = this.latitude - Math.cos(Math.toRadians(angle - 270)) * CLOSE_DISTANCE;
+        }
+
+        return new LongLat(nextLongitude, nextLatitude);
     }
 }
