@@ -16,8 +16,8 @@ public class LongLat
 
     /**
      * Class constructor. Stores the coordinates and determines whether the point is within the drone confinement area.
-     * @param longitude double - input longitude
-     * @param latitude double - input latitude
+     * @param longitude input longitude
+     * @param latitude input latitude
      */
     public LongLat(double longitude, double latitude)
     {
@@ -31,7 +31,7 @@ public class LongLat
     }
 
     /**
-     * Returns whether or not these coordinates are within the drone confinement area.
+     * Returns whether these coordinates are within the drone confinement area.
      * @return a boolean value
      */
     public boolean isConfined() { return confined; }
@@ -39,20 +39,20 @@ public class LongLat
     /**
      * Calculates the Pythagorean distance from this point to a second point.
      * @param secondPoint the second point
-     * @return the distance as a double
+     * @return the distance
      */
     public double distanceTo(LongLat secondPoint)
     {
         double longitudeDistance = this.longitude - secondPoint.longitude;
         double latitudeDistance = this.latitude - secondPoint.latitude;
 
-        return Math.pow(longitudeDistance, 2) + Math.pow(latitudeDistance, 2);
+        return Math.sqrt(longitudeDistance * longitudeDistance + latitudeDistance * latitudeDistance);
     }
 
     /**
      * Returns whether the distance from this point to a second point is small enough to be 'close'.
      * @param secondPoint the second point
-     * @return a boolean value
+     * @return true if close, false otherwise
      */
     public boolean closeTo(LongLat secondPoint)
     {
@@ -60,8 +60,9 @@ public class LongLat
     }
 
     /**
-     * Calculates the next position of this point, were it to move, according to the spec, along the angle specified by
-     * the parameter 'angle'.
+     * Calculates the next position of the drone were it to move according to the spec, from the current coordinates
+     * along the angle specified by the parameter 'angle'. If this angle is invalid, the next position
+     * will be identical to the current position (ie the drone will not move).
      * @param angle the specified angle
      * @return a LongLat object with coordinates of the next position
      */
@@ -69,7 +70,7 @@ public class LongLat
     {
         if (angle % 10 != 0 || angle < 0 || angle > 350)
         {
-            throw new IllegalArgumentException("Angle must be a multiple of 10 and between 0 and 350, inclusive.");
+            return this;
         }
 
         double nextLongitude;
@@ -98,7 +99,7 @@ public class LongLat
         else if (angle < 270)
         {
             nextLongitude = this.longitude - Math.cos(Math.toRadians(angle - 180)) * CLOSE_DISTANCE;
-            nextLatitude = this.latitude = Math.sin(Math.toRadians(angle - 180)) * CLOSE_DISTANCE;
+            nextLatitude = this.latitude - Math.sin(Math.toRadians(angle - 180)) * CLOSE_DISTANCE;
         }
         else if (angle == 270)
         {
