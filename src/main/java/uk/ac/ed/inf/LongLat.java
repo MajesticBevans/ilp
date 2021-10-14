@@ -60,8 +60,8 @@ public class LongLat
     }
 
     /**
-     * Calculates the next position of this point, were it to move, according to the spec, along the angle specified in
-     * the parameter.
+     * Calculates the next position of this point, were it to move, according to the spec, along the angle specified by
+     * the parameter 'angle'.
      * @param angle the specified angle
      * @return a LongLat object with coordinates of the next position
      */
