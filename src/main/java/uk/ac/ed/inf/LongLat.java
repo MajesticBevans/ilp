@@ -61,13 +61,14 @@ public class LongLat
 
     /**
      * Calculates the next position of the drone were it to move according to the spec, from the current coordinates
-     * along the angle specified by the parameter 'angle'. If this angle is invalid, the next position
-     * will be identical to the current position (ie the drone will not move).
+     * along the angle specified by the parameter 'angle'. This angle must be a multiple of 10.
+     * If this angle is invalid, the next position will be identical to the current position (ie the drone will not move).
      * @param angle the specified angle
      * @return a LongLat object with coordinates of the next position
      */
     public LongLat nextPosition(int angle)
     {
+        //checks angle is valid
         if (angle % 10 != 0 || angle < 0 || angle > 350)
         {
             return this;
