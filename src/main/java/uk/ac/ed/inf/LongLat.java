@@ -60,19 +60,22 @@ public class LongLat
     }
 
     /**
-     * Calculates the next position of the drone were it to move according to the spec, from the current coordinates
-     * along the angle specified by the parameter 'angle'. This angle must be a multiple of 10.
-     * If this angle is invalid, the next position will be identical to the current position (ie the drone will not move).
+     * Calculates the next position of the drone were it to move according to the spec, from the current coordinates,
+     * along the angle specified by the parameter 'angle'. If given the angle -999, the drone will hover,
+     * and the position will not change. Otherwise, the angle must be a positive multiple of 10 between 0 and 350
+     * inclusive.
      * @param angle the specified angle
      * @return a LongLat object with coordinates of the next position
      */
     public LongLat nextPosition(int angle)
     {
+        //checks hover value
+        if (angle == -999) { return this; }
+
         //checks angle is valid
-        if (angle % 10 != 0 || angle < 0 || angle > 350)
-        {
-            return this;
-        }
+        assert (angle >= 0);
+        assert (angle <= 350);
+        assert (angle % 10 == 0);
 
         double nextLongitude;
         double nextLatitude;
