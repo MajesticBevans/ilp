@@ -46,7 +46,7 @@ public class Shop
     /**
      * Returns the price of an item in pence, given its name.
      * @param itemName the name of the item
-     * @return the price of the item in pence if it is found on the shop menu, -1 otherwise
+     * @return the price of the item in pence, if it is found on the shop menu. -1 otherwise
      */
     public int getPence(String itemName)
     {
