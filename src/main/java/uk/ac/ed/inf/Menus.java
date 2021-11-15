@@ -1,21 +1,16 @@
 package uk.ac.ed.inf;
 import com.google.gson.Gson;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.lang.reflect.Type;
 import com.google.gson.reflect.TypeToken;
-import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
 
 /**
  * Class to contain data on shops and their menus, and to perform the calculations associated with this data.
  */
 public class Menus
 {
-    private static final HttpClient client = HttpClient.newHttpClient();
     String machine;
     String port;
     String menus;
@@ -23,34 +18,12 @@ public class Menus
     /**
      * Class constructor. Establishes connection to the http web server and retrieves the menus.json file relevant to
      * this class.
-     * @param machine the name of the machine on which the web server is running
-     * @param port the port on which the web server is running
+     * @param client an instance of the ServerClient class to allow and support connections to the web server.
      */
-    public Menus(String machine, String port)
+    public Menus(WebClient client)
     {
-        this.machine = machine;
-        this.port = port;
-
-        HttpRequest request = HttpRequest.newBuilder()
-                                         .uri(URI.create("http://" + machine + ":"+ port + "/menus/menus.json"))
-                                         .build();
-        try
-        {
-            HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
-            if (response.statusCode() != 200)
-            {
-                System.out.println("HTTP request failed with status code: " + response.statusCode());
-                System.exit(1);
-            }
-            else
-            {
-                menus = response.body();
-            }
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-            System.exit(1);
-        }
+        HttpRequest request = client.buildServerRequest("/menus/menus.json");
+        menus = client.getStringResponse(request);
     }
 
     /**

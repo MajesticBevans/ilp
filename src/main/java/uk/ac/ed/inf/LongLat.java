@@ -10,6 +10,7 @@ public class LongLat
     final double MINIMUM_LATITUDE = 55.942617;
     final double MAXIMUM_LATITUDE = 55.946233;
     final double CLOSE_DISTANCE = 0.00015;
+    final int HOVER_VALUE = -999;
 
     public double longitude, latitude;
     private final boolean confined;
@@ -70,7 +71,7 @@ public class LongLat
     public LongLat nextPosition(int angle)
     {
         //checks hover value
-        if (angle == -999) { return this; }
+        if (angle == HOVER_VALUE) { return this; }
 
         //checks angle is valid
         assert (angle >= 0);
