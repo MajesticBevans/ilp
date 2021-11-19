@@ -47,6 +47,6 @@ public class WebClient
             System.exit(1);
         }
         assert false;
-        return "";
+        return null;
     }
 }

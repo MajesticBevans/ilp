@@ -59,4 +59,6 @@ public class Shop
         }
         return -1;
     }
+
+    public String getLocation() { return location; }
 }
