@@ -16,7 +16,7 @@ public class Order
     {
         this.orderNo = orderNo;
         this.w3wDeliveryLocation = w3w;
-        deliveryLocation = LocationConversion.w3wToLongLat(App.webServer, w3w);
+        deliveryLocation = LocationConversion.w3wToLongLat(w3w);
     }
 
     public void setOrderDetails(ArrayList<String> items, ArrayList<Shop> menus)
@@ -44,12 +44,14 @@ public class Order
         }
 
         setTotalDeliveryCost(cost);
-        setPickupLocations(LocationConversion.wordsToLongLats(App.webServer, locations));
+        setPickupLocations(LocationConversion.wordsToLongLats(locations));
     }
 
     private void setPickupLocations(ArrayList<LongLat> pickupLocations) { this.pickupLocations = pickupLocations; }
 
-    private void setTotalDeliveryCost(int cost) { this.totalDeliveryCost = cost; }
+    private void setTotalDeliveryCost(int cost) { totalDeliveryCost = cost; }
+
+    public int getTotalDeliveryCost() { return totalDeliveryCost; }
 
     public String getOrderNo() { return orderNo; }
 

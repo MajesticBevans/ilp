@@ -6,12 +6,12 @@ import java.util.ArrayList;
 
 public class LocationConversion
 {
-    public static ArrayList<LongLat> wordsToLongLats(WebClient client, ArrayList<String> w3ws)
+    public static ArrayList<LongLat> wordsToLongLats(ArrayList<String> w3ws)
     {
         ArrayList<LongLat> deliveryPoints = new ArrayList<>();
         for (String w3w : w3ws)
         {
-            LongLat point = w3wToLongLat(client, w3w);
+            LongLat point = w3wToLongLat(w3w);
             deliveryPoints.add(point);
         }
 
@@ -19,18 +19,18 @@ public class LocationConversion
     }
 
 
-    public static LongLat w3wToLongLat(WebClient client, String w3w)
+    public static LongLat w3wToLongLat(String w3w)
     {
         Gson gson = new Gson();
 
         String[] words = w3w.split("\\.");
 
-        HttpRequest request = client.buildServerRequest("/words/" + words[0] +
+        HttpRequest request = App.webServer.buildServerRequest("/words/" + words[0] +
                                                                     "/" + words[1] +
                                                                     "/" + words[2] +
                                                                     "/details.json");
 
-        String response = client.getStringResponse(request);
+        String response = App.webServer.getStringResponse(request);
         W3WDetails details = gson.fromJson(response, W3WDetails.class);
 
         return new LongLat(details.coordinates.getLng(), details.coordinates.getLat());

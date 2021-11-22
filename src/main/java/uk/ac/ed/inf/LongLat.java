@@ -12,7 +12,8 @@ public class LongLat
     final double CLOSE_DISTANCE = 0.00015;
     final int HOVER_VALUE = -999;
 
-    public double longitude, latitude;
+    private final double longitude;
+    private final double latitude;
     private final boolean confined;
 
     /**
@@ -60,6 +61,41 @@ public class LongLat
         return distanceTo(secondPoint) < CLOSE_DISTANCE;
     }
 
+    public int angleTo(LongLat secondPoint)
+    {
+        double secondLongitude = secondPoint.getLongitude();
+        double secondLatitude = secondPoint.getLatitude();
+
+        if (secondLongitude == longitude && secondLatitude == latitude) { return HOVER_VALUE; }
+        else if (secondLongitude > longitude && secondLatitude == latitude) { return 0; }
+        else if (secondLongitude > longitude && secondLatitude > latitude)
+        {
+            double rawAngle = Math.toDegrees(Math.atan((secondLatitude - latitude) / (secondLongitude - longitude)));
+            return (int)Math.round(rawAngle/10) * 10;
+        }
+        else if (secondLongitude == longitude && secondLatitude > latitude) { return 90; }
+        else if (secondLongitude < longitude && secondLatitude > latitude)
+        {
+            double rawAngle = 90 +
+                    Math.toDegrees(Math.atan((secondLongitude - longitude) / (secondLatitude - latitude)));
+            return (int)Math.round(rawAngle/10) * 10;
+        }
+        else if (secondLongitude < longitude && secondLatitude == latitude) { return 180; }
+        else if (secondLongitude < longitude && secondLatitude < latitude)
+        {
+            double rawAngle = 180 +
+                    Math.toDegrees(Math.atan((secondLongitude - longitude) / (secondLatitude - latitude)));
+            return (int)Math.round(rawAngle/10) * 10;
+        }
+        else if (secondLongitude == longitude) { return 270; }
+        else
+        {
+            double rawAngle = 270 +
+                    Math.toDegrees(Math.atan((secondLatitude - latitude) / (secondLongitude - longitude)));
+            return (int)Math.round(rawAngle/10) * 10;
+        }
+    }
+
     /**
      * Calculates the next position of the drone were it to move according to the spec, from the current coordinates,
      * along the angle specified by the parameter 'angle'. If given the angle -999, the drone will hover,
@@ -81,7 +117,12 @@ public class LongLat
         double nextLongitude;
         double nextLatitude;
 
-        if (angle < 90)
+        if (angle == 0)
+        {
+            nextLongitude = this.longitude + CLOSE_DISTANCE;
+            nextLatitude = this.latitude;
+        }
+        else if (angle < 90)
         {
             nextLongitude = this.longitude + Math.cos(Math.toRadians(angle)) * CLOSE_DISTANCE;
             nextLatitude = this.latitude + Math.sin(Math.toRadians(angle)) * CLOSE_DISTANCE;
@@ -119,4 +160,8 @@ public class LongLat
 
         return new LongLat(nextLongitude, nextLatitude);
     }
+
+    public double getLongitude() { return longitude; }
+
+    public double getLatitude() { return latitude; }
 }
