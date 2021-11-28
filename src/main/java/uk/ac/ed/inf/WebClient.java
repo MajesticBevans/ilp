@@ -1,10 +1,15 @@
 package uk.ac.ed.inf;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.ArrayList;
 
 
 public class WebClient
@@ -51,5 +56,15 @@ public class WebClient
         }
         assert false;
         return null;
+    }
+
+    public ArrayList<Shop> getMenus()
+    {
+        HttpRequest request = buildServerRequest("/menus/menus.json");
+        String response = getStringResponse(request);
+
+        Type listType = new TypeToken<ArrayList<Shop>>() {}.getType();
+
+        return new Gson().fromJson(response, listType);
     }
 }

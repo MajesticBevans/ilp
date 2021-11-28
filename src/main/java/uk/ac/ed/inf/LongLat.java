@@ -5,12 +5,12 @@ package uk.ac.ed.inf;
  */
 public class LongLat
 {
-    final double MINIMUM_LONGITUDE = -3.192473;
-    final double MAXIMUM_LONGITUDE = -3.184319;
-    final double MINIMUM_LATITUDE = 55.942617;
-    final double MAXIMUM_LATITUDE = 55.946233;
-    final double CLOSE_DISTANCE = 0.00015;
-    final int HOVER_VALUE = -999;
+    final static double MINIMUM_LONGITUDE = -3.192473;
+    final static double MAXIMUM_LONGITUDE = -3.184319;
+    final static double MINIMUM_LATITUDE = 55.942617;
+    final static double MAXIMUM_LATITUDE = 55.946233;
+    final static double CLOSE_DISTANCE = 0.00015;
+    final static int HOVER_VALUE = -999;
 
     private final double longitude;
     private final double latitude;
@@ -66,32 +66,36 @@ public class LongLat
         double secondLongitude = secondPoint.getLongitude();
         double secondLatitude = secondPoint.getLatitude();
 
+        double tanLatOverLong = Math.toDegrees(Math.atan(
+                Math.abs(secondLatitude - latitude) / Math.abs(secondLongitude - longitude)
+        ));
+
+        double tanLongOverLat = Math.toDegrees(Math.atan(
+                Math.abs(secondLongitude - longitude) / Math.abs(secondLatitude - latitude)
+        ));
         if (secondLongitude == longitude && secondLatitude == latitude) { return HOVER_VALUE; }
         else if (secondLongitude > longitude && secondLatitude == latitude) { return 0; }
         else if (secondLongitude > longitude && secondLatitude > latitude)
         {
-            double rawAngle = Math.toDegrees(Math.atan((secondLatitude - latitude) / (secondLongitude - longitude)));
-            return (int)Math.round(rawAngle/10) * 10;
+            return (int)Math.round(tanLatOverLong/10) * 10;
         }
         else if (secondLongitude == longitude && secondLatitude > latitude) { return 90; }
         else if (secondLongitude < longitude && secondLatitude > latitude)
         {
-            double rawAngle = 90 +
-                    Math.toDegrees(Math.atan((secondLongitude - longitude) / (secondLatitude - latitude)));
+            double rawAngle = 90 + tanLongOverLat;
+
             return (int)Math.round(rawAngle/10) * 10;
         }
         else if (secondLongitude < longitude && secondLatitude == latitude) { return 180; }
         else if (secondLongitude < longitude && secondLatitude < latitude)
         {
-            double rawAngle = 180 +
-                    Math.toDegrees(Math.atan((secondLongitude - longitude) / (secondLatitude - latitude)));
+            double rawAngle = 180 + tanLongOverLat;
             return (int)Math.round(rawAngle/10) * 10;
         }
         else if (secondLongitude == longitude) { return 270; }
         else
         {
-            double rawAngle = 270 +
-                    Math.toDegrees(Math.atan((secondLatitude - latitude) / (secondLongitude - longitude)));
+            double rawAngle = 270 + tanLatOverLong;
             return (int)Math.round(rawAngle/10) * 10;
         }
     }

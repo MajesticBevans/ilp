@@ -113,7 +113,7 @@ public class SQLClient
     {
         try
         {
-            PreparedStatement psDeliveries = CONN.prepareStatement("insert into deliveries (?,?,?)");
+            PreparedStatement psDeliveries = CONN.prepareStatement("insert into deliveries values (?,?,?)");
 
             psDeliveries.setString(1, orderNo);
             psDeliveries.setString(2, deliveredTo);
@@ -131,7 +131,7 @@ public class SQLClient
         int moveCount = 0;
         try
         {
-            PreparedStatement psFlightpath = CONN.prepareStatement("insert into flightpath (?,?,?,?,?,?)");
+            PreparedStatement psFlightpath = CONN.prepareStatement("insert into flightpath values (?,?,?,?,?,?)");
 
             for (int i = 0; i < path.size() - 1; i++)
             {
@@ -179,6 +179,33 @@ public class SQLClient
         }
     }
 
+    public ArrayList<String> getFlightpathTable()
+    {
+        ArrayList<String> path = new ArrayList<>();
+        String flightpathQuery = "select * from flightpath";
+        try
+        {
+            Statement query = CONN.createStatement();
+            ResultSet resultSet = query.executeQuery(flightpathQuery);
+
+            while (resultSet.next())
+            {
+                StringBuilder str = new StringBuilder("OrderNo: ");
+                str.append(resultSet.getString("orderNo"));
+                str.append(" toLongitude: ");
+                str.append(resultSet.getDouble("toLongitude"));
+                str.append(" angle: ");
+                str.append(resultSet.getInt("angle"));
+                str.append(" toLatitude: ");
+                str.append(resultSet.getDouble("toLatitude"));
+                path.add(str.toString());
+            }
+            return path;
+        } catch (Exception e)
+        {
+            return null;
+        }
+    }
     /**
      * Method to establish a connection to the Derby database
      * @return an SQL connection over which to execute statements

@@ -11,7 +11,7 @@ public class Flight
     private final ArrayList<LongLat> landmarks;
     private final ArrayList<Polygon> noFlyZones;
     private final LongLat APPLETON_TOWER = new LongLat(-3.186874, 55.944494);
-    private List<Point> pointsForLineString;
+    private ArrayList<Point> pointsForLineString = new ArrayList<>();
     private int moveCount;
 
 
@@ -23,6 +23,10 @@ public class Flight
     }
 
 
+    /**
+     * A basic algorithm to find the shortest possible path to complete all the day's deliveries
+     * @return
+     */
     public String joinTheDots()
     {
         LongLat previousLocation = APPLETON_TOWER;
@@ -55,7 +59,8 @@ public class Flight
 
     /**
      * Method that finds the straightest line possible (given the restriction of angles being multiples of 10 only)
-     * between two points and returns the drone path between the two as a list of LongLat objects.
+     * between two points, ignoring no-fly-zones,
+     * and returns the drone path between the two as an ArrayList of LongLat objects.
      * @param origin the starting point of the path
      * @param destination the final point of the path
      * @return the straightest path between the origin and destination inclusive.
@@ -69,7 +74,9 @@ public class Flight
         while (!previous.closeTo(destination))
         {
             previous = previous.nextPosition(previous.angleTo(destination));
+            assert previous.isConfined();
             straightPath.add(previous);
+            System.out.println("pos: (" + previous.getLongitude() + ", " + previous.getLatitude() + ") dest: (" + destination.getLongitude() + ", " + destination.getLatitude() + ")");
         }
         return straightPath;
     }
@@ -85,13 +92,19 @@ public class Flight
         App.database.writeToDeliveriesTable(order.getOrderNo(),
                                             order.getW3wDeliveryLocation(),
                                             order.getTotalDeliveryCost());
+        //TODO
+        //boolean canGetBackToAppleton =
 
+        if (moveCount + path.size() - 1 < 1500)
         moveCount += App.database.writeToFlightpathTable(order.getOrderNo(), path);
 
         //update geoJson temporary list
         for (LongLat node: path)
         {
+            assert node.isConfined();
             pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
         }
     }
+
+    public int getMoveCount() { return moveCount; }
 }
