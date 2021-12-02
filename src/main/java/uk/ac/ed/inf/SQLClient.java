@@ -172,6 +172,7 @@ public class SQLClient
                 }
 
                 order.setOrderDetails(items, menus);
+                Order.totalPlacedOrderCost += order.getTotalCost();
             } catch (Exception e)
             {
                 e.printStackTrace();
@@ -190,15 +191,14 @@ public class SQLClient
 
             while (resultSet.next())
             {
-                StringBuilder str = new StringBuilder("OrderNo: ");
-                str.append(resultSet.getString("orderNo"));
-                str.append(" toLongitude: ");
-                str.append(resultSet.getDouble("toLongitude"));
-                str.append(" angle: ");
-                str.append(resultSet.getInt("angle"));
-                str.append(" toLatitude: ");
-                str.append(resultSet.getDouble("toLatitude"));
-                path.add(str.toString());
+                String str = "OrderNo: " + resultSet.getString("orderNo") +
+                        " toLongitude: " +
+                        resultSet.getDouble("toLongitude") +
+                        " angle: " +
+                        resultSet.getInt("angle") +
+                        " toLatitude: " +
+                        resultSet.getDouble("toLatitude");
+                path.add(str);
             }
             return path;
         } catch (Exception e)

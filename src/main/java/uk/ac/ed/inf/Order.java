@@ -9,8 +9,9 @@ public class Order
     private final LongLat deliveryLocation;
     private ArrayList<LongLat> pickupLocations;
     private ArrayList<String> items;
-    private int totalDeliveryCost;
+    private int totalCost;
     private final int DELIVERY_FEE = 50;
+    public static int totalPlacedOrderCost;
 
     public Order(String orderNo, String w3w)
     {
@@ -43,15 +44,15 @@ public class Order
             }
         }
 
-        setTotalDeliveryCost(cost);
+        setTotalCost(cost);
         setPickupLocations(LocationConversion.wordsToLongLats(locations));
     }
 
     private void setPickupLocations(ArrayList<LongLat> pickupLocations) { this.pickupLocations = pickupLocations; }
 
-    private void setTotalDeliveryCost(int cost) { totalDeliveryCost = cost; }
+    private void setTotalCost(int cost) { totalCost = cost; }
 
-    public int getTotalDeliveryCost() { return totalDeliveryCost; }
+    public int getTotalCost() { return totalCost; }
 
     public String getOrderNo() { return orderNo; }
 
