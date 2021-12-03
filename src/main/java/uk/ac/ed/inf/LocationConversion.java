@@ -1,6 +1,8 @@
 package uk.ac.ed.inf;
 
 import com.google.gson.Gson;
+import com.mapbox.geojson.Point;
+
 import java.net.http.HttpRequest;
 import java.util.ArrayList;
 
@@ -34,5 +36,10 @@ public class LocationConversion
         W3WDetails details = gson.fromJson(response, W3WDetails.class);
 
         return new LongLat(details.coordinates.getLng(), details.coordinates.getLat());
+    }
+
+    public static LongLat pointToLongLat(Point point)
+    {
+        return new LongLat(point.longitude(), point.latitude());
     }
 }

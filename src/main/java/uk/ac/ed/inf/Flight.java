@@ -47,14 +47,13 @@ public class Flight
             for (LongLat pickup : order.getPickupLocations())
             {
                 orderPath.addAll(createSubPath(previousLocation, pickup));
-                previousLocation = pickup;
-                orderPath.add(previousLocation); // adds pickup location again to represent the hover move in path
+                previousLocation = orderPath.get(orderPath.size() - 1);
             }
-
+            orderPath.add(previousLocation); // adds pickup location again to represent the hover move in path
             LongLat deliveryLocation = order.getDeliveryLocation();
 
             orderPath.addAll(createSubPath(previousLocation, deliveryLocation));
-            previousLocation = deliveryLocation;
+            previousLocation = orderPath.get(orderPath.size() - 1);
             orderPath.add(previousLocation); // adds delivery location again to represent hover move in path
 
             if (!commitDeliveryPath(order, orderPath))
@@ -64,7 +63,14 @@ public class Flight
         }
 
         //return to appleton
-        commitDeliveryPath(orders.get(orders.size() - 1), createSubPath(previousLocation, APPLETON_TOWER));
+        ArrayList<LongLat>pathBackToAppleton = createSubPath(previousLocation, APPLETON_TOWER);
+
+        moveCount += App.database.writeToFlightpathTable("return", pathBackToAppleton);
+        for (LongLat node: pathBackToAppleton)
+        {
+            assert node.isConfined();
+            pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
+        }
 
         return FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(pointsForLineString))).toJson();
     }
@@ -98,9 +104,13 @@ public class Flight
 
         while (!previous.closeTo(destination))
         {
-            previous = previous.nextPosition(previous.angleTo(destination));
+            LongLat next = previous.nextPosition(previous.angleTo(destination));
+            if (lineEntersNoFlyZone(previous, next))
+            {
+                return new ArrayList<>();
+            }
+            previous = next;
             assert previous.isConfined();
-            if (isInNo_Fly_Zone(previous)) { return new ArrayList<>(); }
 
             straightPath.add(previous);
             //System.out.println("pos: (" + previous.getLongitude() + ", " +
@@ -120,8 +130,6 @@ public class Flight
     private ArrayList<LongLat> avoidNoFlyZones(LongLat origin, LongLat destination)
     {
         ArrayList<LongLat> path = new ArrayList<>();
-
-        path.add(origin);
 
         int initAngle = origin.angleTo(destination);
         int greaterAngle = (initAngle + 10) % 360;
@@ -170,11 +178,11 @@ public class Flight
 
         for (LongLat node: initialPath)
         {
-            ArrayList<LongLat> destinationTestPath = testPath(node, destination, node.angleTo(destination));
+            ArrayList<LongLat> destinationTestPath = straightLineFromTo(node, destination);
             ArrayList<LongLat> turnTestPath = testPath(node, destination, turnAngle);
             if (destinationTestPath.size() > 0)
             {
-                returnPath.addAll(straightLineFromTo(node, destination));
+                returnPath.addAll(destinationTestPath);
                 return returnPath;
             }
             else if (turnTestPath.size() > 0)
@@ -182,13 +190,27 @@ public class Flight
                 turnAngle = (turnAngle + 10 * flag) % 360;
                 ArrayList<LongLat> maxTurnPath = testPath(node, destination, turnAngle);
 
-                while (maxTurnPath.size() > 0 &&
-                        turnAngle > node.angleTo(destination))
+                if (flag == GREATER_FLAG)
                 {
-                    turnTestPath = maxTurnPath;
-                    turnAngle = (turnAngle + 10 * flag) % 360;
-                    maxTurnPath = testPath(node, destination, turnAngle);
+                    while (maxTurnPath.size() > 0 &&
+                            turnAngle > node.angleTo(destination))
+                    {
+                        turnTestPath = maxTurnPath;
+                        turnAngle = (turnAngle + 10 * flag) % 360;
+                        maxTurnPath = testPath(node, destination, turnAngle);
+                    }
                 }
+                else
+                {
+                    while (maxTurnPath.size() > 0 &&
+                            turnAngle < node.angleTo(destination))
+                    {
+                        turnTestPath = maxTurnPath;
+                        turnAngle = (turnAngle + 10 * flag) % 360;
+                        maxTurnPath = testPath(node, destination, turnAngle);
+                    }
+                }
+
                 returnPath.addAll(turnTowardsDestination(turnTestPath, destination, turnAngle, flag));
                 return returnPath;
             }
@@ -198,6 +220,15 @@ public class Flight
         return returnPath;
     }
 
+    /**
+     * Method that creates a completely straight line path at a given angle from the given origin, and providing no
+     * no-fly-zones are breached, continues this path until either a point enters close to the destination, or the edge
+     * of the confinement zone is reached.
+     * @param origin the origin point
+     * @param destination the planned final destination
+     * @param angle the angle the path will follow
+     * @return the path as described in the method description, or an empty list if a no-fly-zone is breached
+     */
     private ArrayList<LongLat> testPath(LongLat origin, LongLat destination, int angle)
     {
         ArrayList<LongLat> path = new ArrayList<>();
@@ -206,10 +237,8 @@ public class Flight
 
         while (next.isConfined() && !next.closeTo(destination))
         {
-            if (isInNo_Fly_Zone(next))
-            {
-                return new ArrayList<>();
-            }
+            LongLat curr = path.get(path.size() - 1);
+            if (lineEntersNoFlyZone(curr, next)) { return new ArrayList<>(); }
             path.add(next);
             next = next.nextPosition(angle);
         }
@@ -218,11 +247,11 @@ public class Flight
     }
 
     /**
-     * Method that checks if a point is within any of the no-fly-zones.
+     * Method that checks if a point is within any of the no-fly-zones. (UNUSED IN CURRENT IMPLEMENTATION)
      * @param point the point that is being tested
      * @return true if contained within a no-fly-zone, false otherwise
      */
-    private boolean isInNo_Fly_Zone(LongLat point)
+    private boolean isInNoFlyZone(LongLat point)
     {
         for (Polygon poly: noFlyZones)
         {
@@ -245,6 +274,94 @@ public class Flight
                 }
             }
             if (contained) { return true; }
+        }
+        return false;
+    }
+
+    /**
+     * Method that returns whether the line between two points breaches any of the no-fly-zones.
+     * @param point1 one of the points
+     * @param point2 the other point
+     * @return true if no-fly-zone is breached, false otherwise
+     */
+    private boolean lineEntersNoFlyZone(LongLat point1, LongLat point2)
+    {
+        for (Polygon poly : noFlyZones)
+        {
+            List<Point> co_ords = poly.coordinates().get(0);
+            for (int i = 0; i < co_ords.size() - 1; i++)
+            {
+                LongLat curr = LocationConversion.pointToLongLat(co_ords.get(i));
+                LongLat next = LocationConversion.pointToLongLat(co_ords.get(i + 1));
+                if (linesIntersect(point1, point2, curr, next))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Method that returns whether the lines between two pairs of points intersect.
+     * @param line1Point1 the first point of the first pair
+     * @param line1Point2 the second point of the first pair
+     * @param line2Point1 the first point of the second pair
+     * @param line2Point2 the second point of the second pair
+     * @return true if the lines intersect, false otherwise
+     */
+    private boolean linesIntersect(LongLat line1Point1, LongLat line1Point2, LongLat line2Point1, LongLat line2Point2)
+    {
+        // for this function I will treat coordinates as if longitude is the x value, and latitude is the y value
+
+        if (line1Point1 == line1Point2 || line2Point1 == line2Point2) { return false; }
+
+        // if these lines do not exist in the same x interval, they cannot intersect
+        if (Math.max(line1Point1.getLongitude(), line1Point2.getLongitude()) <
+                Math.min(line2Point1.getLongitude(), line2Point2.getLongitude())) { return false; }
+
+        // if the lines are vertical, when calculating the line gradient there will be a division by 0. This if statement
+        // anticipates this and handles the cases where either line is vertical
+        if (line1Point1.getLongitude() == line1Point2.getLongitude() && line2Point1.getLongitude() == line2Point2.getLongitude())
+        {
+            return false;
+        }
+        else if (line1Point1.getLongitude() == line1Point2.getLongitude())
+        {
+            if (line2Point1.getLongitude() > line1Point1.getLongitude() != line2Point2.getLongitude() > line1Point1.getLongitude())
+            {
+                return true;
+            }
+        }
+        else if (line2Point1.getLongitude() == line2Point2.getLongitude())
+        {
+            if (line1Point1.getLongitude() > line2Point1.getLongitude() != line1Point2.getLongitude() > line2Point1.getLongitude())
+            {
+                return true;
+            }
+        }
+
+        double m1 = (line1Point1.getLatitude() - line1Point2.getLatitude()) /
+                (line1Point1.getLongitude() - line1Point2.getLongitude());
+
+        double m2 = (line2Point1.getLatitude() - line2Point2.getLatitude()) /
+                (line2Point1.getLongitude() - line2Point2.getLongitude());
+
+        if (m1 == m2) { return false; } // if the lines have the same gradient, they are parallel and so cannot intersect
+
+        //get y intercepts
+        double c1 = line1Point1.getLatitude() - m1 * line1Point1.getLongitude();
+        double c2 = line2Point1.getLatitude() - m2 * line2Point1.getLongitude();
+
+        //get the x value of the line intersection
+        double intersectionXVal = (c2 - c1) / (m1 - m2);
+
+        //if the intersection value calculated is outside the overlapping x values, the lines do not intersect
+        if (intersectionXVal > Math.max(Math.min(line1Point1.getLongitude(), line1Point2.getLongitude()), Math.min(line2Point1.getLongitude(), line2Point2.getLongitude())) &&
+                (intersectionXVal < Math.min(Math.max(line1Point1.getLongitude(), line1Point2.getLongitude()),
+                        Math.max(line2Point1.getLongitude(), line2Point2.getLongitude()))))
+        {
+            return true;
         }
         return false;
     }
@@ -285,6 +402,11 @@ public class Flight
         else
         {
             moveCount += App.database.writeToFlightpathTable("return", pathBackToAppleton);
+            for (LongLat node: pathBackToAppleton)
+            {
+                assert node.isConfined();
+                pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
+            }
             return false;
         }
     }

@@ -43,7 +43,6 @@ public class App
 
         //getFlightpath();
         //System.exit(1);
-
         //fetch all the order information from the database and web server
         orders = database.retrieveOrders(day, month, year);
         menus = webServer.getMenus();

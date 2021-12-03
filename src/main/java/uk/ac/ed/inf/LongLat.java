@@ -67,19 +67,20 @@ public class LongLat
         double secondLatitude = secondPoint.getLatitude();
 
         double tanLatOverLong = Math.toDegrees(Math.atan(
-                Math.abs(secondLatitude - latitude) / Math.abs(secondLongitude - longitude)
-        ));
+                Math.abs(secondLatitude - latitude) / Math.abs(secondLongitude - longitude)));
 
         double tanLongOverLat = Math.toDegrees(Math.atan(
-                Math.abs(secondLongitude - longitude) / Math.abs(secondLatitude - latitude)
-        ));
+                Math.abs(secondLongitude - longitude) / Math.abs(secondLatitude - latitude)));
+
         if (secondLongitude == longitude && secondLatitude == latitude) { return HOVER_VALUE; }
         else if (secondLongitude > longitude && secondLatitude == latitude) { return 0; }
         else if (secondLongitude > longitude && secondLatitude > latitude)
         {
             return (int)Math.round(tanLatOverLong/10) * 10;
         }
-        else if (secondLongitude == longitude && secondLatitude > latitude) { return 90; }
+        else if (secondLongitude == longitude && secondLatitude > latitude) {
+            return 90;
+        }
         else if (secondLongitude < longitude && secondLatitude > latitude)
         {
             double rawAngle = 90 + tanLongOverLat;
@@ -89,13 +90,13 @@ public class LongLat
         else if (secondLongitude < longitude && secondLatitude == latitude) { return 180; }
         else if (secondLongitude < longitude && secondLatitude < latitude)
         {
-            double rawAngle = 180 + tanLongOverLat;
+            double rawAngle = 180 + tanLatOverLong;
             return (int)Math.round(rawAngle/10) * 10;
         }
         else if (secondLongitude == longitude) { return 270; }
         else
         {
-            double rawAngle = 270 + tanLatOverLong;
+            double rawAngle = 270 + tanLongOverLat;
             return (int)Math.round(rawAngle/10) * 10;
         }
     }
@@ -161,7 +162,6 @@ public class LongLat
             nextLongitude = this.longitude + Math.sin(Math.toRadians(angle - 270)) * CLOSE_DISTANCE;
             nextLatitude = this.latitude - Math.cos(Math.toRadians(angle - 270)) * CLOSE_DISTANCE;
         }
-
         return new LongLat(nextLongitude, nextLatitude);
     }
 
