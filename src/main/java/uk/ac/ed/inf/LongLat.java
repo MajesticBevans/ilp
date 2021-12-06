@@ -61,6 +61,11 @@ public class LongLat
         return distanceTo(secondPoint) < CLOSE_DISTANCE;
     }
 
+    /**
+     * Method to get the angle between this object and a second LongLat object.
+     * @param secondPoint the second LongLat
+     * @return the angle from this LongLat to the secondPoint
+     */
     public int angleTo(LongLat secondPoint)
     {
         double secondLongitude = secondPoint.getLongitude();
@@ -165,7 +170,15 @@ public class LongLat
         return new LongLat(nextLongitude, nextLatitude);
     }
 
+    /**
+     * Retrieves the longitude value of this LongLat.
+     * @return the longitude
+     */
     public double getLongitude() { return longitude; }
 
+    /**
+     * Retrieves the latitude value of this LongLat.
+     * @return the latitude
+     */
     public double getLatitude() { return latitude; }
 }

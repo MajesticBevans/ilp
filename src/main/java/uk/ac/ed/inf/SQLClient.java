@@ -3,6 +3,9 @@ package uk.ac.ed.inf;
 import java.sql.*;
 import java.util.ArrayList;
 
+/**
+ * Class to handle all direct interaction with the database.
+ */
 public class SQLClient
 {
     private final String MACHINE;
@@ -25,10 +28,14 @@ public class SQLClient
         this.CONN = getDatabaseConnection();
     }
 
-    public ArrayList<Order> retrieveOrders(String day, String month, String year)
+    /**
+     * Retrieve the information from the orders table relating to the given date.
+     * @param sqlDate the given date
+     * @return a list of Order objects containing the retrieved information
+     */
+    public ArrayList<Order> retrieveOrders(java.sql.Date sqlDate)
     {
         //convert date into sql format
-        Date sqlDate = Date.valueOf(year + "-" + month + "-" + day);
         String ordersQuery = "select * from orders where deliveryDate=(?)";
 
         try
@@ -58,9 +65,9 @@ public class SQLClient
 
 
     /**
-     * Creates a table in the database with a specified name, column headings and datatypes.
+     * Creates a table in the database with a specified name, and specified column headings and datatypes.
      * @param tableName the table title
-     * @param columns a variable number of strings that contain the column heading and datatype
+     * @param columns a variable number of strings that contain the column heading and datatype for each column
      */
     public void createTable(String tableName, String ... columns)
     {
@@ -109,6 +116,12 @@ public class SQLClient
         }
     }
 
+    /**
+     * Writes one entry into the deliveries table.
+     * @param orderNo the order number of the order that has been delivered
+     * @param deliveredTo the what3words location of the delivery
+     * @param costInPence the cost of the order in pence
+     */
     public void writeToDeliveriesTable(String orderNo, String deliveredTo, int costInPence)
     {
         try
@@ -126,6 +139,12 @@ public class SQLClient
         }
     }
 
+    /**
+     * Writes one complete order path into the flightpath table.
+     * @param orderNo the order number of the order path that is being written
+     * @param path the order path
+     * @return the number of moves taken to complete the path
+     */
     public int writeToFlightpathTable(String orderNo, ArrayList<LongLat> path)
     {
         int moveCount = 0;
@@ -154,6 +173,11 @@ public class SQLClient
         return 0;
     }
 
+    /**
+     * Retrieves the information from the orderDetails relating to the given orders.
+     * @param orders the orders
+     * @param menus the contents of menus.json, parsed into java objects.
+     */
     public void retrieveOrderDetails(ArrayList<Order> orders, ArrayList<Shop> menus)
     {
         String orderDetailsQuery = "select * from orderDetails where orderNo=(?)";
@@ -180,6 +204,10 @@ public class SQLClient
         }
     }
 
+    /**
+     * Retrieves the contents of the flightpath table.
+     * @return a list of strings where each string is a table entry
+     */
     public ArrayList<String> getFlightpathTable()
     {
         ArrayList<String> path = new ArrayList<>();

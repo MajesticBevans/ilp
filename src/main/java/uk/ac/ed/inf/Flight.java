@@ -5,10 +5,13 @@ import com.mapbox.geojson.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Class that contains all information relating to the flight of the drone, including the pathing algorithm, its helper
+ * functions, and methods to commit this path to the database.
+ */
 public class Flight
 {
     private final ArrayList<Order> orders;
-    private final ArrayList<LongLat> landmarks;
     private final ArrayList<Polygon> noFlyZones;
     private static final LongLat APPLETON_TOWER = new LongLat(-3.186874, 55.944494);
     private ArrayList<Point> pointsForLineString = new ArrayList<>();
@@ -21,19 +24,17 @@ public class Flight
     /**
      * Class constructor. Simply takes the information needed to calculate a flightpath and stores it.
      * @param orders the list of Order objects relating to the orders placed during this day.
-     * @param landmarks the landmarks from /buildings/landmarks.geojson
      * @param noFlyZones the no-fly-zones from /buildings/no-fly-zones.geojson
      */
-    public Flight(ArrayList<Order> orders, ArrayList<LongLat> landmarks, ArrayList<Polygon> noFlyZones)
+    public Flight(ArrayList<Order> orders, ArrayList<Polygon> noFlyZones)
     {
         this.orders = orders;
-        this.landmarks = landmarks;
         this.noFlyZones = noFlyZones;
     }
 
     /**
-     * Top-level function that decides the order in which locations are visited during the flightpath, and calls the
-     * appropriate methods to generate the sub-paths between them and commit these paths to the database.
+     * Top-level function that decides the order in which locations are visited during the flightpath, calling the
+     * appropriate methods to generate the sub-paths between them, and to commit these paths to the database.
      * @return the GeoJSON LineString representing the flightpath
      */
     public String generateFlightPath()
@@ -47,7 +48,8 @@ public class Flight
             for (LongLat pickup : order.getPickupLocations())
             {
                 orderPath.addAll(createSubPath(previousLocation, pickup));
-                previousLocation = orderPath.get(orderPath.size() - 1);
+                if (orderPath.size() > 0) { previousLocation = orderPath.get(orderPath.size() - 1); }
+                else { previousLocation = pickup; }
             }
             orderPath.add(previousLocation); // adds pickup location again to represent the hover move in path
             LongLat deliveryLocation = order.getDeliveryLocation();
@@ -192,8 +194,7 @@ public class Flight
 
                 if (flag == GREATER_FLAG)
                 {
-                    while (maxTurnPath.size() > 0 &&
-                            turnAngle > node.angleTo(destination))
+                    while (maxTurnPath.size() > 0 && turnAngle > node.angleTo(destination))
                     {
                         turnTestPath = maxTurnPath;
                         turnAngle = (turnAngle + 10 * flag) % 360;
@@ -202,8 +203,7 @@ public class Flight
                 }
                 else
                 {
-                    while (maxTurnPath.size() > 0 &&
-                            turnAngle < node.angleTo(destination))
+                    while (maxTurnPath.size() > 0 && turnAngle < node.angleTo(destination))
                     {
                         turnTestPath = maxTurnPath;
                         turnAngle = (turnAngle + 10 * flag) % 360;
@@ -216,6 +216,7 @@ public class Flight
             }
             else { returnPath.add(node); }
         }
+        System.err.println("Algorithm failed");
         assert false;
         return returnPath;
     }
@@ -247,41 +248,9 @@ public class Flight
     }
 
     /**
-     * Method that checks if a point is within any of the no-fly-zones. (UNUSED IN CURRENT IMPLEMENTATION)
-     * @param point the point that is being tested
-     * @return true if contained within a no-fly-zone, false otherwise
-     */
-    private boolean isInNoFlyZone(LongLat point)
-    {
-        for (Polygon poly: noFlyZones)
-        {
-            List<Point> co_ords = poly.coordinates().get(0); // second list is for holes within polygon,
-            // irrelevant for no fly zones
-            int i;
-            int j;
-            boolean contained = false;
-
-            for (i = 0, j = co_ords.size() - 2; i < co_ords.size() - 1; j = i++) // for loop gets the line between each pair of consecutive points
-            {
-                double intersectionLongitude = (co_ords.get(j).longitude() - co_ords.get(i).longitude()) *
-                        (point.getLatitude() - co_ords.get(i).latitude()) / (co_ords.get(j).latitude() - co_ords.get(i).latitude()) +
-                        co_ords.get(i).longitude();
-
-                if ((co_ords.get(i).latitude() > point.getLatitude()) != (co_ords.get(j).latitude() > point.getLatitude()) // first condition checks if the point is between the latitude values of the line endings
-                        && (point.getLongitude() < intersectionLongitude))
-                {
-                    contained = !contained;
-                }
-            }
-            if (contained) { return true; }
-        }
-        return false;
-    }
-
-    /**
      * Method that returns whether the line between two points breaches any of the no-fly-zones.
-     * @param point1 one of the points
-     * @param point2 the other point
+     * @param point1 the first point
+     * @param point2 the second point
      * @return true if no-fly-zone is breached, false otherwise
      */
     private boolean lineEntersNoFlyZone(LongLat point1, LongLat point2)
@@ -341,6 +310,7 @@ public class Flight
             }
         }
 
+        //calculate line gradients
         double m1 = (line1Point1.getLatitude() - line1Point2.getLatitude()) /
                 (line1Point1.getLongitude() - line1Point2.getLongitude());
 
@@ -356,10 +326,11 @@ public class Flight
         //get the x value of the line intersection
         double intersectionXVal = (c2 - c1) / (m1 - m2);
 
-        //if the intersection value calculated is outside the overlapping x values, the lines do not intersect
-        if (intersectionXVal > Math.max(Math.min(line1Point1.getLongitude(), line1Point2.getLongitude()), Math.min(line2Point1.getLongitude(), line2Point2.getLongitude())) &&
-                (intersectionXVal < Math.min(Math.max(line1Point1.getLongitude(), line1Point2.getLongitude()),
-                        Math.max(line2Point1.getLongitude(), line2Point2.getLongitude()))))
+        //if the intersection value calculated is within the overlapping x values, the lines must intersect
+        if (intersectionXVal >
+                Math.max(Math.min(line1Point1.getLongitude(), line1Point2.getLongitude()), Math.min(line2Point1.getLongitude(), line2Point2.getLongitude())) &&
+                (intersectionXVal <
+                        Math.min(Math.max(line1Point1.getLongitude(), line1Point2.getLongitude()), Math.max(line2Point1.getLongitude(), line2Point2.getLongitude()))))
         {
             return true;
         }
@@ -380,7 +351,7 @@ public class Flight
 
         ArrayList<LongLat> pathBackToAppleton = createSubPath(path.get(path.size() - 1), APPLETON_TOWER);
         // boolean that determines whether the drone will have enough battery power to return to appleton if this path is committed
-        boolean canGetBackToAppleton = pathBackToAppleton.size() - 1 < MAX_MOVE_COUNT - newMoveCount;
+        boolean canGetBackToAppleton = pathBackToAppleton.size() < MAX_MOVE_COUNT - newMoveCount;
 
         if (canGetBackToAppleton)
         {
@@ -411,5 +382,9 @@ public class Flight
         }
     }
 
+    /**
+     * Method to retrieve the move count.
+     * @return the move count
+     */
     public int getMoveCount() { return moveCount; }
 }

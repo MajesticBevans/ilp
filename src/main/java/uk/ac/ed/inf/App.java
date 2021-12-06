@@ -1,12 +1,17 @@
 package uk.ac.ed.inf;
+
 import com.google.gson.Gson;
 import com.mapbox.geojson.*;
-
 import java.io.FileWriter;
-import java.net.http.HttpRequest;
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Objects;
 
+/**
+ * This class contains the main method within which all functionality is contained, and which starts the program
+ * execution. It also contains helper functions to support comparison of the program's performance on the current date
+ * to others.
+ */
 public class App
 {
     private final static String MACHINE = "localhost";
@@ -15,10 +20,14 @@ public class App
     public static WebClient webServer;
 
     private static ArrayList<Order> orders = new ArrayList<>();
-    private static ArrayList<LongLat> landmarks = new ArrayList<>();
-    private static ArrayList<Polygon> noFlyZones = new ArrayList<>();
-    private static ArrayList<Shop> menus;
+    private static final ArrayList<LongLat> landmarks = new ArrayList<>();
+    private static final ArrayList<Polygon> noFlyZones = new ArrayList<>();
 
+    /**
+     * The main method of the program, and the initial method called. Processes the command line arguments and decides
+     * the order of execution for the program.
+     * @param args the command line arguments passed to the program
+     */
     public static void main(String[] args)
     {
 
@@ -44,9 +53,24 @@ public class App
         //getFlightpath();
         //System.exit(1);
         //fetch all the order information from the database and web server
-        orders = database.retrieveOrders(day, month, year);
-        menus = webServer.getMenus();
-        database.retrieveOrderDetails(orders, menus);
+        try
+        {
+            Date sqlDate = Date.valueOf(year + "-" + month + "-" + day);
+            orders = database.retrieveOrders(sqlDate);
+        } catch (Exception e)
+        {
+            System.err.println("Invalid date input. Please check your values and try again.");
+            System.exit(1);
+        }
+
+        if (orders.size() == 0)
+        {
+            System.err.println("No orders found relating to date: " + day + "-" + month + "-" + year);
+            System.err.println("Path cannot be calculated");
+            System.exit(1);
+        }
+
+        database.retrieveOrderDetails(orders, webServer.getMenus());
 
         //create the output database tables
         database.createTable("deliveries",
@@ -65,35 +89,29 @@ public class App
         //retrieve the landmark and no-fly zone locations
         retrieveBuildingInfo();
 
-        Flight flight = new Flight(orders, landmarks, noFlyZones);
-        String geoJsonPath = flight.generateFlightPath();
-        try
+        Flight flight = new Flight(orders, noFlyZones);
+        if (!writeGeoJSONFile(outputFileName, flight.generateFlightPath()))
         {
-            FileWriter fileWriter = new FileWriter(outputFileName, false);
-            fileWriter.append(geoJsonPath);
-            fileWriter.close();
-            System.out.println("GeoJSON file created");
-        } catch (Exception e)
+            System.err.println("GeoJSON file writing failed");
+        }
+        else
         {
-            System.err.println("GeoJSON file cannot be created");
-            e.printStackTrace();
+            System.out.println("GeoJSON file written successfully");
         }
 
         System.out.println("Analysis of flight for " + day + "-" + month + "-" + year);
         performanceAnalysis(flight);
-
-        //TODO
-
-        //Then make it avoid no-fly zones (ie incorporate the buildings)
-        //Finish the functionality, then optimise the flightpath algorithm
     }
 
+    /**
+     * Retrieves all the information from the 'buildings' folder of the web server and stores it.
+     */
     public static void retrieveBuildingInfo()
     {
-        HttpRequest landmarksRequest = webServer.buildServerRequest("/buildings/landmarks.geojson");
-        HttpRequest noFlyRequest = webServer.buildServerRequest("/buildings/no-fly-zones.geojson");
-        String landmarksJson = webServer.getStringResponse(landmarksRequest);
-        String noFlyJson = webServer.getStringResponse(noFlyRequest);
+        String landmarksJson =
+                webServer.getStringResponse(webServer.buildServerRequest("/buildings/landmarks.geojson"));
+        String noFlyJson =
+                webServer.getStringResponse(webServer.buildServerRequest("/buildings/no-fly-zones.geojson"));
 
         Gson gson = new Gson();
         for (Feature feat : Objects.requireNonNull(FeatureCollection.fromJson(landmarksJson).features()))
@@ -110,6 +128,31 @@ public class App
         }
     }
 
+    /**
+     * Method to create the output GeoJSON file if it does not exist, or to overwrite the file if it does.
+     * @param filename the name of the file to create
+     * @param path the geoJSON string that represents the flightpath
+     * @return true if file written successfully, false otherwise
+     */
+    private static boolean writeGeoJSONFile(String filename, String path)
+    {
+        try
+        {
+            FileWriter fileWriter = new FileWriter(filename, false);
+            fileWriter.write(path);
+            fileWriter.close();
+            return true;
+        } catch (Exception e)
+        {
+            return false;
+        }
+    }
+
+    /**
+     * Prints information about program performance. Namely, the approximate runtime of the program, the number of moves
+     * the drone made, and the percentage monetary value.
+     * @param flight the flight object representing the drone flight
+     */
     private static void performanceAnalysis(Flight flight)
     {
         long timeDiff = System.nanoTime() - startTime;
@@ -120,7 +163,10 @@ public class App
                 "%");
     }
 
-    public static void getFlightpath()
+    /**
+     * A helper function used during testing that prints the flightpath table to the console.
+     */
+    public static void printFlightpath()
     {
         ArrayList<String> path = database.getFlightpathTable();
         for (String node: path)

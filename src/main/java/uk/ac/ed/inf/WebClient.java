@@ -11,7 +11,9 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
 
-
+/**
+ * Class to handle all direct interaction with the web server.
+ */
 public class WebClient
 {
     private static final HttpClient CLIENT = HttpClient.newHttpClient();

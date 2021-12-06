@@ -60,5 +60,9 @@ public class Shop
         return -1;
     }
 
+    /**
+     * Retrieves the what3words location of the shop.
+     * @return the location
+     */
     public String getLocation() { return location; }
 }
