@@ -64,16 +64,7 @@ public class Flight
             }
         }
 
-        //return to appleton
-        ArrayList<LongLat>pathBackToAppleton = createSubPath(previousLocation, APPLETON_TOWER);
-
-        moveCount += App.database.writeToFlightpathTable("return", pathBackToAppleton);
-        for (LongLat node: pathBackToAppleton)
-        {
-            assert node.isConfined();
-            pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
-        }
-
+        returnToAppleton(previousLocation);
         return FeatureCollection.fromFeature(Feature.fromGeometry(LineString.fromLngLats(pointsForLineString))).toJson();
     }
 
@@ -140,13 +131,20 @@ public class Flight
         ArrayList<LongLat> greaterPath = testPath(origin, destination, greaterAngle);
         ArrayList<LongLat> lesserPath = testPath(origin, destination, lesserAngle);
 
-        while(greaterPath.size() == 0 && lesserPath.size() == 0)
+        while(greaterPath.size() == 0 && lesserPath.size() == 0 && greaterAngle != initAngle)
         {
             greaterAngle = (greaterAngle + 10) % 360;
             lesserAngle = (lesserAngle - 10) % 360;
 
             greaterPath = testPath(origin, destination, greaterAngle);
             lesserPath = testPath(origin, destination, lesserAngle);
+        }
+
+        if (greaterAngle == initAngle)
+        {
+            System.err.println("Algorithm failed");
+            path.add(destination);
+            return path;
         }
 
         if(greaterPath.size() > 0)
@@ -217,7 +215,7 @@ public class Flight
             else { returnPath.add(node); }
         }
         System.err.println("Algorithm failed");
-        assert false;
+        returnPath.add(destination);
         return returnPath;
     }
 
@@ -283,8 +281,6 @@ public class Flight
     {
         // for this function I will treat coordinates as if longitude is the x value, and latitude is the y value
 
-        if (line1Point1 == line1Point2 || line2Point1 == line2Point2) { return false; }
-
         // if these lines do not exist in the same x interval, they cannot intersect
         if (Math.max(line1Point1.getLongitude(), line1Point2.getLongitude()) <
                 Math.min(line2Point1.getLongitude(), line2Point2.getLongitude())) { return false; }
@@ -338,6 +334,22 @@ public class Flight
     }
 
     /**
+     * Method to calculate and commit a path back to Appleton Tower from a given point.
+     * @param previous the given point
+     */
+    private void returnToAppleton(LongLat previous)
+    {
+        ArrayList<LongLat>pathBackToAppleton = createSubPath(previous, APPLETON_TOWER);
+
+        moveCount += App.database.writeToFlightpathTable("return", pathBackToAppleton);
+        for (LongLat node: pathBackToAppleton)
+        {
+            assert node.isConfined();
+            pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
+        }
+    }
+
+    /**
      * Method to write and commit one complete delivery path (including pickup and delivery) into the flightpath table
      * and update the deliveries table accordingly. If the drone does not have enough battery power to complete the delivery,
      * it instead returns to Appleton Tower, commits this to the flightpath and returns false.
@@ -351,7 +363,7 @@ public class Flight
 
         ArrayList<LongLat> pathBackToAppleton = createSubPath(path.get(path.size() - 1), APPLETON_TOWER);
         // boolean that determines whether the drone will have enough battery power to return to appleton if this path is committed
-        boolean canGetBackToAppleton = pathBackToAppleton.size() < MAX_MOVE_COUNT - newMoveCount;
+        boolean canGetBackToAppleton = pathBackToAppleton.size()  < MAX_MOVE_COUNT - newMoveCount;
 
         if (canGetBackToAppleton)
         {
@@ -372,12 +384,7 @@ public class Flight
         }
         else
         {
-            moveCount += App.database.writeToFlightpathTable("return", pathBackToAppleton);
-            for (LongLat node: pathBackToAppleton)
-            {
-                assert node.isConfined();
-                pointsForLineString.add(Point.fromLngLat(node.getLongitude(), node.getLatitude()));
-            }
+            returnToAppleton(path.get(path.size()-1));
             return false;
         }
     }
