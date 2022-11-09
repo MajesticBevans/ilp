@@ -1,2 +1,2 @@
 # ilp
-All written code can be found in src/ed/inf/ac/uk, complete with JavaDoc documentation.
+All written code can be found in src/main/java/uk/ac/ed/inf, complete with JavaDoc documentation.
